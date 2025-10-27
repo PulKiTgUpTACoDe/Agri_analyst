@@ -19,7 +19,7 @@ def build_filters_params(filters: Dict[str, Any] | None) -> Dict[str, str]:
 
 
 def get_api_key() -> str | None:
-    return os.getenv("data_gov_api_key")
+    return os.getenv("GOV_API_KEY")
 
 
 async def get_json_async(url: str, params: Dict[str, str], timeout: int = 30) -> Dict[str, Any]:

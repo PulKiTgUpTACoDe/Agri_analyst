@@ -26,9 +26,18 @@ async def fetch_rainfall_subdivisions(
     mapped: dict = {}
     if filters:
         for k, v in filters.items():
-            if v is not None:
+            if v is not None and k != 'limit':
                 mapped[k] = v
 
     params.update(build_filters_params(mapped))
+    print(f"[RAINFALL] Calling API with filters: {mapped}")
     data = await get_json_async(ENDPOINT, params, timeout=timeout)
-    return data.get("records", [])
+    records = data.get("records", [])
+    print(f"[RAINFALL] Got {len(records)} records")
+    
+    # If no records found with filters, return empty (don't fetch unfiltered)
+    if not records and mapped:
+        print("[RAINFALL] No records found with filters")
+        return []
+    
+    return records

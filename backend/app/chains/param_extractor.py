@@ -6,7 +6,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 class DailyPricesParams(BaseModel):
-    state_keyword: Optional[str] = Field(None, description="maps to filters[state.keyword]")
+    state_keyword: Optional[str] = None
     district: Optional[str] = None
     market: Optional[str] = None
     commodity: Optional[str] = None
@@ -38,8 +38,23 @@ class RainfallSubdivisionsParams(BaseModel):
 
 
 def make_param_extractor(schema_model: Type[BaseModel]):
+    system_prompt = """Extract API parameters from the user's question. 
+    
+Rules:
+- Only extract parameters that are explicitly mentioned in the question
+- Leave fields as null if not mentioned
+- For state names, use proper capitalization (e.g., 'Maharashtra', 'Tamil Nadu')
+- For commodity names, use proper capitalization (e.g., 'Tomato', 'Onion', 'Potato')
+- If the question is about a specific endpoint (daily prices, variety prices, temperature, rainfall), only extract for that endpoint
+- Daily prices questions: extract state_keyword, district, market, commodity, variety, grade
+- Variety prices questions: extract State, District, Commodity, Arrival_Date
+- Temperature questions: extract year
+- Rainfall questions: no specific filters needed
+
+Output ONLY the specified JSON schema with extracted values."""
+    
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "Extract API parameters from the user's question. Output ONLY the specified JSON schema."),
+        ("system", system_prompt),
         ("human", "{question}"),
     ])
     model = ChatGoogleGenerativeAI(

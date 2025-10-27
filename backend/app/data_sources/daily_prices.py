@@ -22,21 +22,56 @@ async def fetch_daily_prices(
         "offset": str(offset),
     }
 
-    # Map friendly keys to exact dataset field keys where needed
-    mapped: dict = {}
-    if filters:
-        # state.keyword special key mapping
-        if "state_keyword" in filters and filters["state_keyword"] is not None:
-            mapped["state.keyword"] = filters["state_keyword"]
-        # pass-through other known keys
-        for k in ("district", "market", "commodity", "variety", "grade"):
-            if k in filters and filters[k] is not None:
-                mapped[k] = filters[k]
-        # allow already-shaped filters[...] keys too
-        for k, v in filters.items():
-            if isinstance(k, str) and k.startswith("filters["):
-                mapped[k] = v
+    def _build_mapped(f: Optional[dict]) -> dict:
+        mapped: dict = {}
+        if f:
+            if f.get("state_keyword") is not None:
+                # Try 'state' field (most common in daily prices API)
+                mapped["state"] = f["state_keyword"]
+            for k in ("district", "market", "commodity", "variety", "grade"):
+                if f.get(k) is not None:
+                    mapped[k] = f[k]
+            for k, v in f.items():
+                if isinstance(k, str) and k.startswith("filters[") and v is not None:
+                    mapped[k] = v
+        return mapped
 
-    params.update(build_filters_params(mapped))
-    data = await get_json_async(ENDPOINT, params, timeout=timeout)
-    return data.get("records", [])
+    async def _call(mapped: dict) -> list[dict]:
+        p = params.copy()
+        p.update(build_filters_params(mapped))
+        print(f"[DAILY_PRICES] Calling API with filters: {mapped}")
+        data = await get_json_async(ENDPOINT, p, timeout=timeout)
+        records = data.get("records", [])
+        print(f"[DAILY_PRICES] Got {len(records)} records")
+        return records
+
+    mapped = _build_mapped(filters)
+    records = await _call(mapped)
+    if records:
+        return records
+
+    # Progressive relaxation: only if we have filters and got no results
+    if mapped and any(v for v in mapped.values()):
+        relax_order = [
+            # Keep commodity + state (most important)
+            {k: v for k, v in mapped.items() if k in ("commodity", "state")},
+            # Keep only state
+            {k: v for k, v in mapped.items() if k == "state"},
+            # Keep only commodity (last resort)
+            {k: v for k, v in mapped.items() if k == "commodity"},
+        ]
+        seen = set()
+        for variant in relax_order:
+            key = tuple(sorted(variant.items()))
+            if key in seen:
+                continue
+            seen.add(key)
+            if not variant:
+                continue
+            records = await _call(variant)
+            if records:
+                return records
+
+    # Don't fetch unfiltered data - return empty if no matches found
+    print("[DAILY_PRICES] No records found with any filter combination")
+    return []

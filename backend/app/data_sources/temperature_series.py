@@ -32,5 +32,14 @@ async def fetch_temperature_series(
                 mapped[k] = v
 
     params.update(build_filters_params(mapped))
+    print(f"[TEMPERATURE] Calling API with filters: {mapped}")
     data = await get_json_async(ENDPOINT, params, timeout=timeout)
-    return data.get("records", [])
+    records = data.get("records", [])
+    print(f"[TEMPERATURE] Got {len(records)} records")
+    
+    # If no records found with filters, return empty (don't fetch unfiltered)
+    if not records and mapped:
+        print("[TEMPERATURE] No records found with filters")
+        return []
+    
+    return records
