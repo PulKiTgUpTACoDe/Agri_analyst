@@ -1,20 +1,19 @@
-from langchain.agents import create_agent
+from pipelines.qa import build_pipeline
 from dotenv import load_dotenv
 
 load_dotenv()
 
-def get_weather(city: str) -> str:
-    """Get weather for a given city."""
-    return f"It's always sunny in {city}!"
+def run_multi_source(question: str) -> str:
+    """Run the end-to-end multi-source QA pipeline (param extract + parallel fetch)."""
+    chain = build_pipeline()
+    return chain.invoke({"question": question})
 
-agent = create_agent(
-    model="google_genai:gemini-2.0-flash",  
-    tools=[get_weather],
-    system_prompt="You are a helpful assistant",
-)
 
-response = agent.invoke(
-    {"messages": [{"role": "user", "content": "what is the weather in mumbai"}]}
-)
+if __name__ == "__main__":
+    q1 = ("Give daily prices for Tomato in Pune market, Pune district, Maharashtra (limit 20)")
 
-print(response["messages"][-1].content)
+    q2 = ("Give daily prices for Tomato in Pune market, Pune district, Maharashtra (limit 20).")
+
+    q3 = ("Show variety-wise prices for Onion in Nagpur, Maharashtra on 15/03/2018.")
+
+    print("\n--- Multi-source answer ---\n", run_multi_source(q1))
