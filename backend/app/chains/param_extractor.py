@@ -37,6 +37,24 @@ class RainfallSubdivisionsParams(BaseModel):
     limit: Optional[int] = 50
 
 
+class CropProductionParams(BaseModel):
+    state_name: Optional[str] = None
+    district_name: Optional[str] = None
+    crop_year: Optional[int] = None
+    season: Optional[str] = None  # Kharif, Rabi, Summer, Whole Year
+    crop: Optional[str] = None
+    limit: Optional[int] = 100
+
+
+class DistrictRainfallParams(BaseModel):
+    state_name: Optional[str] = None
+    district_name: Optional[str] = None
+    year: Optional[int] = None
+    month: Optional[str] = None
+    subdivision: Optional[str] = None
+    limit: Optional[int] = 100
+
+
 def make_param_extractor(schema_model: Type[BaseModel]):
     system_prompt = """Extract API parameters from the user's question. 
     
@@ -50,6 +68,8 @@ Rules:
 - Variety prices questions: extract State, District, Commodity, Arrival_Date
 - Temperature questions: extract year
 - Rainfall questions: no specific filters needed
+- Crop production questions: extract state_name, district_name, crop_year, season, crop (for production/area/yield queries)
+- District rainfall questions: extract state_name, district_name, year, month (for rainfall/precipitation queries)
 
 Output ONLY the specified JSON schema with extracted values."""
     

@@ -24,6 +24,12 @@ def get_api_key() -> str | None:
 
 async def get_json_async(url: str, params: Dict[str, str], timeout: int = 30) -> Dict[str, Any]:
     async with httpx.AsyncClient(timeout=timeout) as client:
+        print(f"[API_CALL] URL: {url}")
+        print(f"[API_CALL] Params: {params}")
         r = await client.get(url, params=params)
+        print(f"[API_CALL] Status: {r.status_code}")
+        print(f"[API_CALL] Response URL: {r.url}")
         r.raise_for_status()
-        return r.json() or {}
+        result = r.json() or {}
+        print(f"[API_CALL] Records returned: {len(result.get('records', []))}")
+        return result
