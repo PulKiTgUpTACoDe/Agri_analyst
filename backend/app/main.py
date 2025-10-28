@@ -42,15 +42,9 @@ app.add_middleware(
 class AskRequest(BaseModel):
     question: str
 
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
-
 @app.post("/ask")
 async def ask(req: AskRequest):
-    """Process agricultural query using LangGraph workflow."""
+    """Process agricultural query using ai workflow."""
     result = await get_workflow().ainvoke({
         "question": req.question,
         "intent": None,

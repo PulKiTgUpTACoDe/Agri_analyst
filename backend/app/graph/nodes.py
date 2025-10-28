@@ -6,7 +6,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 from app.graph.state import AgentState
 from app.core.config import get_settings
-from app.core.schemas import QueryIntent, PriceParams, ProductionParams, ClimateParams
+from app.core.schemas import QueryIntent, DailyPriceParams, VarietyPriceParams, ProductionParams, TemperatureParams, RainfallParams
 from app.core.api_client import get_client
 from app.utils.aggregation import (
     top_n_ranking,
@@ -49,12 +49,11 @@ Query types:
 - general: simple factual queries
 
 Data sources to consider:
-1. daily_price_params: For market prices (state, commodity, market)
-2. variety_price_params: For variety-specific prices (state, commodity, district)
-3. production_params: For crop production (state, crop, crop_year, season)
-4. temperature_params: For temperature data (year)
-5. rainfall_params: For rainfall subdivisions (subdivision)
-6. district_rainfall_params: For district rainfall (state, year)
+1. daily_price_params: For daily market prices (state_keyword, district, market, commodity, variety, grade)
+2. variety_price_params: For variety-wise prices (State, District, Commodity, Arrival_Date) - note capital letters
+3. production_params: For crop production (state_name, district_name, crop, crop_year, season, area_, production_)
+4. temperature_params: For temperature series (year, seasonal filters)
+5. rainfall_params: For rainfall subdivisions (subdivision, year)
 
 Extract relevant params for each source based on the question."""),
         ("human", "{question}")
@@ -75,11 +74,14 @@ async def fetch_data(state: AgentState) -> AgentState:
     tasks = {}
     
     # 1. Daily Prices
-    if intent.daily_price_params and (intent.daily_price_params.commodity or intent.daily_price_params.state):
+    if intent.daily_price_params:
         filters = {
-            "state": intent.daily_price_params.state,
+            "state.keyword": intent.daily_price_params.state_keyword or intent.daily_price_params.state,
+            "district": intent.daily_price_params.district,
+            "market": intent.daily_price_params.market,
             "commodity": intent.daily_price_params.commodity,
-            "market": intent.daily_price_params.market
+            "variety": intent.daily_price_params.variety,
+            "grade": intent.daily_price_params.grade
         }
         tasks["daily_prices"] = client.fetch(
             settings.daily_prices_endpoint,
@@ -88,11 +90,12 @@ async def fetch_data(state: AgentState) -> AgentState:
         )
     
     # 2. Variety Prices
-    if intent.variety_price_params and (intent.variety_price_params.commodity or intent.variety_price_params.state):
+    if intent.variety_price_params:
         filters = {
-            "State": intent.variety_price_params.state,
-            "Commodity": intent.variety_price_params.commodity,
-            "District": intent.variety_price_params.district
+            "State": intent.variety_price_params.State or intent.variety_price_params.state,
+            "District": intent.variety_price_params.District or intent.variety_price_params.district,
+            "Commodity": intent.variety_price_params.Commodity,
+            "Arrival_Date": intent.variety_price_params.Arrival_Date
         }
         tasks["variety_prices"] = client.fetch(
             settings.variety_prices_endpoint,
@@ -101,12 +104,15 @@ async def fetch_data(state: AgentState) -> AgentState:
         )
     
     # 3. Crop Production
-    if intent.production_params and (intent.production_params.crop or intent.production_params.state):
+    if intent.production_params:
         filters = {
-            "state_name": intent.production_params.state,
+            "state_name": intent.production_params.state_name,
+            "district_name": intent.production_params.district_name,
             "crop": intent.production_params.crop,
             "crop_year": intent.production_params.crop_year,
-            "season": intent.production_params.season
+            "season": intent.production_params.season,
+            "area_": intent.production_params.area_,
+            "production_": intent.production_params.production_
         }
         tasks["crop_production"] = client.fetch(
             settings.crop_production_endpoint,
@@ -115,33 +121,31 @@ async def fetch_data(state: AgentState) -> AgentState:
         )
     
     # 4. Temperature Series
-    if intent.temperature_params and intent.temperature_params.year:
-        filters = {"year": intent.temperature_params.year}
+    if intent.temperature_params:
+        filters = {
+            "year": intent.temperature_params.year,
+            "_annual": intent.temperature_params.annual,
+            "_jan_feb": intent.temperature_params.jan_feb,
+            "_mar_may": intent.temperature_params.mar_may,
+            "_jun_sep": intent.temperature_params.jun_sep,
+            "_oct_dec": intent.temperature_params.oct_dec
+        }
         tasks["temperature_series"] = client.fetch(
             settings.temperature_endpoint,
-            filters,
+            {k: v for k, v in filters.items() if v},
             intent.temperature_params.limit
         )
     
     # 5. Rainfall Subdivisions
     if intent.rainfall_params:
-        filters = {"subdivision": intent.rainfall_params.subdivision} if intent.rainfall_params.subdivision else {}
+        filters = {
+            "subdivision": intent.rainfall_params.subdivision,
+            "year": intent.rainfall_params.year
+        }
         tasks["rainfall_subdivisions"] = client.fetch(
             settings.rainfall_endpoint,
-            filters,
-            intent.rainfall_params.limit
-        )
-    
-    # 6. District Rainfall
-    if intent.district_rainfall_params and (intent.district_rainfall_params.state or intent.district_rainfall_params.year):
-        filters = {
-            "state_name": intent.district_rainfall_params.state,
-            "year": intent.district_rainfall_params.year
-        }
-        tasks["district_rainfall"] = client.fetch(
-            settings.rainfall_endpoint,
             {k: v for k, v in filters.items() if v},
-            intent.district_rainfall_params.limit
+            intent.rainfall_params.limit
         )
     
     # Execute all fetches in parallel
@@ -173,8 +177,10 @@ async def analyze_data(state: AgentState) -> AgentState:
     }
     
     production_data = raw_data.get('crop_production', [])
-    rainfall_data = raw_data.get('district_rainfall', []) or raw_data.get('rainfall_subdivisions', [])
-    price_data = raw_data.get('daily_prices', []) or raw_data.get('variety_prices', [])
+    rainfall_data = raw_data.get('rainfall_subdivisions', [])
+    daily_price_data = raw_data.get('daily_prices', [])
+    variety_price_data = raw_data.get('variety_prices', [])
+    price_data = daily_price_data or variety_price_data
     temp_data = raw_data.get('temperature_series', [])
     
     # COMPARISON ANALYSIS
