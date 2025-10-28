@@ -1,45 +1,11 @@
-# FastAPI and Web Framework
-fastapi
-uvicorn
-pydantic
-python-multipart
-python-dotenv
-
-# Database
-sqlalchemy
-psycopg2-binary
-
-# Vector Store
-chromadb
-langchain-chroma
-
-# LangChain Core
-langchain
-langchain-core
-langchain-google-genai
-langchain-community
-langchain-huggingface
-
-# LangGraph
-langgraph
-langgraph-sdk
-langgraph-checkpoint
-
-# LangSmith (Observability)
-langsmith
-
-# Embeddings
-sentence-transformers
-
-# Data Processing
-pandas
-numpy
-
-# HTTP Clients
-requests
-httpx
-
-# Google AI
-google-generativeai
-google-api-core
-google-auth
+fastapi==0.115.0
+uvicorn==0.32.0
+python-dotenv==1.0.1
+pydantic==2.9.2
+pydantic-settings==2.6.0
+httpx==0.27.2
+langchain==0.3.7
+langchain-core==0.3.15
+langchain-google-genai==2.0.4
+langgraph==0.2.45
+python-multipart==0.0.12

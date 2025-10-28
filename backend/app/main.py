@@ -1,18 +1,29 @@
+"""Simplified FastAPI application using LangGraph."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
-from app.pipelines.qa import run_pipeline_with_metadata
+from contextlib import asynccontextmanager
 
-load_dotenv()
-
-
-class AskRequest(BaseModel):
-    question: str
+from app.graph.workflow import get_workflow
+from app.core.api_client import get_client
 
 
-app = FastAPI(title="Agri Analyst API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifecycle."""
+    # Startup
+    print("[STARTUP] Initializing workflow...")
+    get_workflow()
+    yield
+    # Shutdown
+    print("[SHUTDOWN] Closing connections...")
+    client = get_client()
+    await client.close()
 
+
+app = FastAPI(title="Agri Analyst API", lifespan=lifespan)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -28,6 +39,10 @@ app.add_middleware(
 )
 
 
+class AskRequest(BaseModel):
+    question: str
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
@@ -35,15 +50,24 @@ async def health():
 
 @app.post("/ask")
 async def ask(req: AskRequest):
-    result = await run_pipeline_with_metadata(req.question)
-    return result
+    """Process agricultural query using LangGraph workflow."""
+    result = await get_workflow().ainvoke({
+        "question": req.question,
+        "intent": None,
+        "raw_data": {},
+        "analysis": None,
+        "answer": None,
+        "metadata": {}
+    })
+    
+    return {
+        "answer": result["answer"],
+        "metadata": result["metadata"],
+        "analysis": result.get("analysis"),
+        "query_type": result["intent"].query_type if result.get("intent") else "general"
+    }
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000)
