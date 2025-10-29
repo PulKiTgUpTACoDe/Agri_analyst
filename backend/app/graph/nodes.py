@@ -26,17 +26,12 @@ from app.utils.policy_synthesis import (
 )
 
 
-settings = get_settings()
-llm = ChatGoogleGenerativeAI(
-    model=settings.GEMINI_MODEL,
-    google_api_key=settings.GOOGLE_API_KEY,
-    temperature=settings.GEMINI_TEMPERATURE,
-    max_output_tokens=settings.GEMINI_MAX_TOKENS
-)
+ 
 
 
 async def detect_intent(state: AgentState) -> AgentState:
     """Detect query intent and extract parameters using LLM."""
+    settings = get_settings()
     prompt = ChatPromptTemplate.from_messages([
         ("system", """Extract query intent and parameters. Output JSON matching QueryIntent schema.
         
@@ -59,6 +54,12 @@ Extract relevant params for each source based on the question."""),
         ("human", "{question}")
     ])
     
+    llm = ChatGoogleGenerativeAI(
+        model=settings.GEMINI_MODEL,
+        google_api_key=settings.GOOGLE_API_KEY,
+        temperature=settings.GEMINI_TEMPERATURE,
+        max_output_tokens=settings.GEMINI_MAX_TOKENS
+    )
     chain = prompt | llm.with_structured_output(QueryIntent)
     intent = await chain.ainvoke({"question": state["question"]})
     
@@ -69,6 +70,7 @@ Extract relevant params for each source based on the question."""),
 async def fetch_data(state: AgentState) -> AgentState:
     """Fetch data from relevant sources based on intent."""
     intent = state["intent"]
+    settings = get_settings()
     client = get_client()
     
     tasks = {}
@@ -355,6 +357,7 @@ async def generate_answer(state: AgentState) -> AgentState:
     intent = state.get("intent")
     raw_data = state.get("raw_data", {})
     analysis = state.get("analysis") or {}
+    settings = get_settings()
     
     # Check if this is a general question (no data needed)
     total_records = sum(len(v) for v in raw_data.values())

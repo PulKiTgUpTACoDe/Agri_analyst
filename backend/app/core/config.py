@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     GOV_API_KEY: str
     GOOGLE_API_KEY: str
     
+    # CORS Configuration
+    CORS_ORIGINS: str = ""  
+    
     # Model Config
     GEMINI_MODEL: str = "gemini-2.5-flash"
     GEMINI_TEMPERATURE: float = 0.3

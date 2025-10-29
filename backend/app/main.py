@@ -23,15 +23,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Agri Analyst API", lifespan=lifespan)
 
-# CORS
+# CORS Configuration
+from app.core.config import get_settings
+
+settings = get_settings()
+
+cors_origins = getattr(settings, "CORS_ORIGINS", "").split(",")
+cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=cors_origins,
     allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
