@@ -1,10 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
+
+interface Citation {
+  id: string;
+  name: string;
+  icon: string;
+  records: number;
+}
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  citations?: Citation[];
   metadata?: {
     sources?: string[];
     query_type?: string;
@@ -39,11 +48,17 @@ export default function ChatBox() {
     setError(null);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
       const res = await fetch(`${API_BASE}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!res.ok) throw new Error(`Backend error ${res.status}`);
 
@@ -52,6 +67,7 @@ export default function ChatBox() {
       const assistantMessage: Message = {
         role: "assistant",
         content: data.answer ?? "No response",
+        citations: data.citations || [],
         metadata: {
           sources: data.metadata?.sources || data.usedEndpoints,
           query_type: data.query_type,
@@ -60,12 +76,13 @@ export default function ChatBox() {
         timestamp,
       };
 
-      // Simulate typing delay for smoother UX
-      setTimeout(() => {
-        setMessages((prev) => [...prev, assistantMessage]);
-      }, 500);
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (err: any) {
-      setError(err?.message || "Error connecting to backend.");
+      if (err.name === 'AbortError') {
+        setError("Request timed out. The query is taking too long. Please try a simpler question or check your connection.");
+      } else {
+        setError(err?.message || "Error connecting to backend. Please make sure the backend server is running.");
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -136,33 +153,56 @@ export default function ChatBox() {
                       : "bg-white border border-gray-100 text-gray-800 rounded-tl-sm"
                   }`}
                 >
-                  <div className="flex items-end justify-between">
-                    <p className="text-sm whitespace-pre-line">
-                      {msg.role === "assistant" ? (
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      ) : (
-                        msg.content
-                      )}
-                    </p>
-                    <span className="text-xs text-gray-400 ml-3">
-                      {msg.timestamp}
-                    </span>
+                  <div className="w-full">
+                    <div className="prose prose-sm max-w-none prose-headings:text-gray-800 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-li:text-gray-700 prose-table:text-sm prose-th:bg-emerald-50 prose-th:text-emerald-900 prose-th:font-semibold prose-th:p-2 prose-td:p-2 prose-td:border prose-td:border-gray-200 prose-table:border-collapse prose-table:w-full prose-table:my-4">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    </div>
+                    <div className="flex justify-end mt-2">
+                      <span className="text-xs text-gray-400">
+                        {msg.timestamp}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Citations */}
+                  {msg.citations && msg.citations.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Data Sources Used:
+                      </div>
+                      <div className="space-y-2">
+                        {msg.citations.map((citation, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-100 rounded-lg px-3 py-2">
+                            <span className="text-lg">{citation.icon}</span>
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-800">{citation.name}</div>
+                              <div className="text-gray-500">{citation.records} records analyzed</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Metadata badges */}
                   {msg.metadata && (
                     <div className="mt-3 flex flex-wrap gap-2 text-xs">
                       {msg.metadata.query_type && (
-                        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+                        <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full font-medium">
                           {msg.metadata.query_type}
                         </span>
                       )}
-                      {msg.metadata.sources && msg.metadata.sources.length > 0 && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
-                          {msg.metadata.sources.length} sources
-                        </span>
-                      )}
                       {msg.metadata.total_records && (
-                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">
-                          {msg.metadata.total_records} records
+                        <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded-full font-medium">
+                          {msg.metadata.total_records} total records
                         </span>
                       )}
                     </div>
@@ -207,20 +247,30 @@ export default function ChatBox() {
       )}
 
       {/* Input Box */}
-      <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-3 mt-3 flex items-center gap-3">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-3 mt-3 flex items-end gap-3">
         <textarea
           value={question}
-          onChange={(e) => setQuestion(e.target.value)}
+          onChange={(e) => {
+            setQuestion(e.target.value);
+            // Auto-resize textarea
+            e.target.style.height = 'auto';
+            e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+          }}
           placeholder="Ask about crops, prices, weather, production..."
           rows={1}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              if (!loading) askBackend();
+              if (!loading) {
+                askBackend();
+                // Reset height after sending
+                e.currentTarget.style.height = 'auto';
+              }
             }
           }}
           disabled={loading}
-          className="flex-1 resize-none px-4 py-3 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-800 placeholder-gray-400"
+          className="flex-1 resize-none px-4 py-3 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-800 placeholder-gray-400 max-h-[200px] overflow-y-auto"
+          style={{ minHeight: '48px' }}
         />
         <button
           onClick={askBackend}

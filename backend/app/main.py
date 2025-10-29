@@ -54,12 +54,51 @@ async def ask(req: AskRequest):
         "metadata": {}
     })
     
-    return {
-        "answer": result["answer"],
-        "metadata": result["metadata"],
-        "analysis": result.get("analysis"),
-        "query_type": result["intent"].query_type if result.get("intent") else "general"
+    # Build citations with friendly names
+    sources = result["metadata"].get("sources", [])
+    raw_data = result.get("raw_data", {})
+    
+    # Debug logging
+    print(f"[DEBUG] Sources: {sources}")
+    print(f"[DEBUG] Raw data keys: {list(raw_data.keys())}")
+    for key, value in raw_data.items():
+        print(f"[DEBUG] {key}: {len(value) if isinstance(value, list) else 'not a list'}")
+    
+    citations = []
+    source_map = {
+        "daily_prices": {"name": "Daily Market Prices", "icon": "💰"},
+        "variety_prices": {"name": "Variety-wise Prices", "icon": "🏷️"},
+        "crop_production": {"name": "Crop Production Statistics", "icon": "🌾"},
+        "temperature_series": {"name": "Temperature Data", "icon": "🌡️"},
+        "rainfall_subdivisions": {"name": "Rainfall Data", "icon": "🌧️"}
     }
+    
+    for source in sources:
+        if source in source_map:
+            record_count = len(raw_data.get(source, []))
+            print(f"[DEBUG] Citation for {source}: {record_count} records")
+            citations.append({
+                "id": source,
+                "name": source_map[source]["name"],
+                "icon": source_map[source]["icon"],
+                "records": record_count
+            })
+    
+    response = {
+        "answer": result.get("answer", "No answer generated"),
+        "context": None,
+        "usedEndpoints": sources,
+        "usedParams": None,
+        "citations": citations
+    }
+    
+    analysis = result.get("analysis", {})
+    if analysis and (analysis.get('insights') or analysis.get('structured_data')):
+        response["query_type"] = analysis.get('query_type', 'general')
+        response["analysis"] = analysis
+        response["total_records"] = result["metadata"].get("records_fetched", 0)
+    
+    return response
 
 
 if __name__ == "__main__":

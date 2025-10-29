@@ -12,7 +12,7 @@ class DataGovClient:
         self.client = httpx.AsyncClient(timeout=30.0)
     
     async def fetch(self, endpoint: str, filters: dict[str, Any], limit: int = 50) -> list[dict]:
-        """Fetch data with automatic filter relaxation."""
+        """Fetch data with automatic filter."""
         params = {
             "api-key": self.settings.GOV_API_KEY,
             "format": "json",

@@ -352,18 +352,77 @@ async def analyze_data(state: AgentState) -> AgentState:
 
 async def generate_answer(state: AgentState) -> AgentState:
     """Generate final answer using LLM with data and analysis."""
-    intent = state["intent"]
-    raw_data = state["raw_data"]
-    analysis = state["analysis"] or {}
+    intent = state.get("intent")
+    raw_data = state.get("raw_data", {})
+    analysis = state.get("analysis") or {}
+    
+    # Check if this is a general question (no data needed)
+    total_records = sum(len(v) for v in raw_data.values())
+    
+    # Handle general questions without agricultural data
+    if not raw_data or total_records == 0:
+        # Check if we even tried to fetch data
+        needs_data = intent and any([
+            intent.daily_price_params,
+            intent.variety_price_params,
+            intent.production_params,
+            intent.temperature_params,
+            intent.rainfall_params
+        ]) if intent else False
+        
+        if needs_data:
+            # We tried to fetch data but got nothing
+            state["answer"] = """I apologize, but I couldn't find any data matching your query in our databases. This could be due to:
+
+- The specific combination of filters (state, district, crop, year, etc.) not having available data
+- The data might not be available for the requested time period
+- There might be a temporary issue with the data source
+
+Please try:
+- Broadening your search (e.g., remove specific district or year filters)
+- Checking if the state/district/crop names are spelled correctly
+- Asking about a different time period or region
+
+Example queries that typically work:
+- "What is rice production in Punjab?"
+- "Show rainfall trends in Maharashtra"
+- "Compare wheat prices in different states"""
+            return state
+        else:
+            # General question - answer without data
+            llm = ChatGoogleGenerativeAI(
+                model=settings.GEMINI_MODEL,
+                temperature=settings.GEMINI_TEMPERATURE,
+                google_api_key=settings.GOOGLE_API_KEY
+            )
+            
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", """You are a helpful AI assistant specializing in Indian agriculture. 
+                
+You can answer general questions about:
+- Agricultural practices and techniques
+- Crop types and their characteristics
+- General farming knowledge
+- Agricultural policies and schemes
+- Climate and weather impacts on agriculture
+
+If the question requires specific data (prices, production numbers, rainfall data), politely inform the user that you need more specific details to fetch the relevant data.
+
+Be helpful, concise, and professional."""),
+                ("human", "{question}")
+            ])
+            
+            chain = prompt | llm | StrOutputParser()
+            state["answer"] = await chain.ainvoke({"question": state["question"]})
+            return state
     
     # Build context
     context_parts = []
     
-    # Add raw data preview
-    for source, records in raw_data.items():
-        if records:
-            context_parts.append(f"## {source.title()} ({len(records)} records)")
-            context_parts.append(str(records[:3]))
+    for source, data in raw_data.items():
+        if data:
+            context_parts.append(f"## {source} ({len(data)} records)")
+            context_parts.append(str(data[:5]))  # Sample  
     
     # Add analysis
     if analysis:
@@ -372,29 +431,37 @@ async def generate_answer(state: AgentState) -> AgentState:
     
     context = "\n\n".join(context_parts) if context_parts else "No data available"
     
+    # Initialize LLM for data-driven answers
+    llm = ChatGoogleGenerativeAI(
+        model=settings.GEMINI_MODEL,
+        temperature=settings.GEMINI_TEMPERATURE,
+        google_api_key=settings.GOOGLE_API_KEY
+    )
+    
     # Generate answer
     prompt = ChatPromptTemplate.from_messages([
-        ("system", f"""You are an Agriculture Data Analyst with access to 6 Indian agricultural datasets.
+        ("system", f"""You are an Agriculture Data Analyst providing insights on Indian agriculture.
 
 Query Type: {intent.query_type}
 
-Available data sources:
-- daily_prices: Daily market prices by state/district/market
-- variety_prices: Variety-wise commodity prices
-- crop_production: District-wise production (area, production, yield by season/year)
-- temperature_series: Annual/seasonal temperature data
-- rainfall_subdivisions: Subdivision-level rainfall
-- district_rainfall: State/district rainfall data
+IMPORTANT Instructions:
+- DO NOT mention technical data source names (like "rainfall_subdivisions", "crop_production", etc.) in your response
+- Present findings naturally without referencing database/API names
+- Use actual numbers, states, districts, and years from the provided data
+- Be specific and data-driven
 
-Instructions:
-- Use provided data and analysis
-- Cite specific numbers, states, districts, years
-- For comparisons: show side-by-side data with differences
-- For trends: mention direction, growth rate, and time period
-- For correlations: explain strength, direction, and implications
-- For rankings: list top items with specific values
-- For policy: provide data-backed arguments
-- Be concise, precise, and data-driven"""),
+Response Guidelines:
+- For comparisons: show side-by-side data with differences and percentages
+- For trends: mention direction, growth rate, time period, and specific values
+- For correlations: explain strength, direction, and practical implications
+- For rankings: list top items with their specific values
+- For policy: provide data-backed arguments with concrete numbers
+- Be concise, precise, and professional
+
+Example (Good): "Rainfall in Maharashtra shows a decreasing trend from 920 mm in 2000 to 880 mm in 2020."
+Example (Bad): "Based on data from rainfall_subdivisions, Maharashtra shows..."
+
+Focus on delivering insights, not on explaining where the data came from."""),
         ("human", "Question: {question}\n\nData:\n{context}")
     ])
     
