@@ -39,6 +39,9 @@ export default function ChatBox() {
   const askBackend = async () => {
     if (!question.trim()) return;
 
+    console.log('Sending request to:', `${API_BASE}/ask`);  // Log the full URL
+    console.log('Request payload:', { question });  // Log the request payload
+
     const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     const userMessage: Message = { role: "user", content: question, timestamp };
@@ -59,10 +62,16 @@ export default function ChatBox() {
       });
 
       clearTimeout(timeoutId);
+      console.log('Response status:', res.status, res.statusText);
 
-      if (!res.ok) throw new Error(`Backend error ${res.status}`);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Error ${res.status}: ${res.statusText}`);
+      }
 
       const data = await res.json();
+      console.log('Response data:', data);  // Log successful response
 
       const assistantMessage: Message = {
         role: "assistant",
