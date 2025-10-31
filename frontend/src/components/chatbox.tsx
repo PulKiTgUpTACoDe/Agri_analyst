@@ -28,19 +28,15 @@ export default function ChatBox() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE = import.meta.env.VITE_API_BASE;
+  const API_BASE = import.meta.env.VITE_API_BASE_LOCAL;
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-scroll to bottom whenever messages update
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   const askBackend = async () => {
     if (!question.trim()) return;
-
-    console.log('Sending request to:', `${API_BASE}/ask`);  // Log the full URL
-    console.log('Request payload:', { question });  // Log the request payload
 
     const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
@@ -62,16 +58,12 @@ export default function ChatBox() {
       });
 
       clearTimeout(timeoutId);
-      console.log('Response status:', res.status, res.statusText);
 
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Error response:', errorText);
         throw new Error(`Error ${res.status}: ${res.statusText}`);
       }
 
       const data = await res.json();
-      console.log('Response data:', data);  // Log successful response
 
       const assistantMessage: Message = {
         role: "assistant",
