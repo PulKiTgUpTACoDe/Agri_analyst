@@ -59,12 +59,6 @@ async def ask(req: AskRequest):
     sources = result["metadata"].get("sources", [])
     raw_data = result.get("raw_data", {})
     
-    # Debug logging
-    print(f"[DEBUG] Sources: {sources}")
-    print(f"[DEBUG] Raw data keys: {list(raw_data.keys())}")
-    for key, value in raw_data.items():
-        print(f"[DEBUG] {key}: {len(value) if isinstance(value, list) else 'not a list'}")
-    
     citations = []
     source_map = {
         "daily_prices": {"name": "Daily Market Prices", "icon": "💰"},
@@ -77,7 +71,6 @@ async def ask(req: AskRequest):
     for source in sources:
         if source in source_map:
             record_count = len(raw_data.get(source, []))
-            print(f"[DEBUG] Citation for {source}: {record_count} records")
             citations.append({
                 "id": source,
                 "name": source_map[source]["name"],

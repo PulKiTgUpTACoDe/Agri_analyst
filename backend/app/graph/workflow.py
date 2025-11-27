@@ -54,9 +54,7 @@ def create_workflow() -> StateGraph:
     return workflow.compile()
 
 
-# Global workflow instance
 _workflow = None
-
 
 def get_workflow():
     """Get or create workflow instance."""

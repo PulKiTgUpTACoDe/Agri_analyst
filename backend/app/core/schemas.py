@@ -7,7 +7,7 @@ class DataSourceParams(BaseModel):
     """Base params for all data sources."""
     state: Optional[str] = None
     district: Optional[str] = None
-    limit: int = 50
+    limit: int = 5000
 
 
 class DailyPriceParams(DataSourceParams):
@@ -37,7 +37,7 @@ class ProductionParams(BaseModel):
     season: Optional[str] = Field(None, description="Season: Kharif, Rabi, Summer, Whole Year")
     area_: Optional[float] = Field(None, description="Area in hectares")
     production_: Optional[float] = Field(None, description="Production in tonnes")
-    limit: int = 100
+    limit: int = 5000
 
 
 class TemperatureParams(BaseModel):
@@ -48,14 +48,14 @@ class TemperatureParams(BaseModel):
     mar_may: Optional[str] = Field(None, alias="_mar_may")
     jun_sep: Optional[str] = Field(None, alias="_jun_sep")
     oct_dec: Optional[str] = Field(None, alias="_oct_dec")
-    limit: int = 50
+    limit: int = 5000
 
 
 class RainfallParams(BaseModel):
     """Rainfall subdivision parameters."""
     subdivision: Optional[str] = None
     year: Optional[int] = None
-    limit: int = 50
+    limit: int = 5000
 
 
 class QueryIntent(BaseModel):

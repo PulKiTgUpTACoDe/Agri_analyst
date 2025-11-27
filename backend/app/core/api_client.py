@@ -11,7 +11,7 @@ class DataGovClient:
         self.settings = get_settings()
         self.client = httpx.AsyncClient(timeout=30.0)
     
-    async def fetch(self, endpoint: str, filters: dict[str, Any], limit: int = 50) -> list[dict]:
+    async def fetch(self, endpoint: str, filters: dict[str, Any], limit: int = 5000) -> list[dict]:
         """Fetch data with automatic filter."""
         params = {
             "api-key": self.settings.GOV_API_KEY,
