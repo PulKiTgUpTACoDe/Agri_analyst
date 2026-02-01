@@ -28,8 +28,14 @@ export default function ChatBox() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE = import.meta.env.VITE_API_BASE;
+  const API_BASE =
+    import.meta.env.VITE_API_BASE || "https://agri-analyst.vercel.app";
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Debug: Log the API_BASE being used
+  useEffect(() => {
+    console.log("API_BASE:", API_BASE);
+  }, []);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -38,7 +44,10 @@ export default function ChatBox() {
   const askBackend = async () => {
     if (!question.trim()) return;
 
-    const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const timestamp = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
     const userMessage: Message = { role: "user", content: question, timestamp };
     setMessages((prev) => [...prev, userMessage]);
@@ -48,7 +57,7 @@ export default function ChatBox() {
 
     try {
       const controller = new AbortController();
-      // const timeoutId = setTimeout(() => controller.abort(), 60000); 
+      // const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       const res = await fetch(`${API_BASE}/ask`, {
         method: "POST",
@@ -79,10 +88,15 @@ export default function ChatBox() {
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        setError("Request timed out. The query is taking too long. Please try a simpler question or check your connection.");
+      if (err.name === "AbortError") {
+        setError(
+          "Request timed out. The query is taking too long. Please try a simpler question or check your connection.",
+        );
       } else {
-        setError(err?.message || "Error connecting to backend. Please make sure the backend server is running.");
+        setError(
+          err?.message ||
+            "Error connecting to backend. Please make sure the backend server is running.",
+        );
       }
       console.error(err);
     } finally {
@@ -110,9 +124,12 @@ export default function ChatBox() {
               />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">Ask Anything About Indian Agriculture</h2>
+          <h2 className="text-3xl font-bold text-gray-800 mb-2">
+            Ask Anything About Indian Agriculture
+          </h2>
           <p className="text-gray-600 mb-8">
-            Get insights from 5+ datasets on crops, markets, and weather trends 🌾
+            Get insights from 5+ datasets on crops, markets, and weather trends
+            🌾
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-xl">
             {[
@@ -156,7 +173,9 @@ export default function ChatBox() {
                 >
                   <div className="w-full">
                     <div className="prose prose-sm max-w-none prose-headings:text-gray-800 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-li:text-gray-700 prose-table:text-sm prose-th:bg-emerald-50 prose-th:text-emerald-900 prose-th:font-semibold prose-th:p-2 prose-td:p-2 prose-td:border prose-td:border-gray-200 prose-table:border-collapse prose-table:w-full prose-table:my-4">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
                     </div>
                     <div className="flex justify-end mt-2">
                       <span className="text-xs text-gray-400">
@@ -169,7 +188,12 @@ export default function ChatBox() {
                   {msg.citations && msg.citations.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-gray-100">
                       <div className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -181,11 +205,18 @@ export default function ChatBox() {
                       </div>
                       <div className="space-y-2">
                         {msg.citations.map((citation, i) => (
-                          <div key={i} className="flex items-center gap-2 text-xs bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-100 rounded-lg px-3 py-2">
+                          <div
+                            key={i}
+                            className="flex items-center gap-2 text-xs bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-100 rounded-lg px-3 py-2"
+                          >
                             <span className="text-lg">{citation.icon}</span>
                             <div className="flex-1">
-                              <div className="font-medium text-gray-800">{citation.name}</div>
-                              <div className="text-gray-500">{citation.records} records analyzed</div>
+                              <div className="font-medium text-gray-800">
+                                {citation.name}
+                              </div>
+                              <div className="text-gray-500">
+                                {citation.records} records analyzed
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -217,9 +248,18 @@ export default function ChatBox() {
             <div className="flex justify-start">
               <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-3 text-gray-500 shadow-sm">
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                  <div
+                    className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  ></div>
                 </div>
                 <span className="text-sm italic">Analyzing data...</span>
               </div>
@@ -233,7 +273,11 @@ export default function ChatBox() {
       {/* Error Box */}
       {error && (
         <div className="mb-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-start gap-3">
-          <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <svg
+            className="w-5 h-5 mt-0.5 flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
             <path
               fillRule="evenodd"
               d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -254,8 +298,8 @@ export default function ChatBox() {
           onChange={(e) => {
             setQuestion(e.target.value);
             // Auto-resize textarea
-            e.target.style.height = 'auto';
-            e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+            e.target.style.height = "auto";
+            e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
           }}
           placeholder="Ask about crops, prices, weather, production..."
           rows={1}
@@ -265,13 +309,13 @@ export default function ChatBox() {
               if (!loading) {
                 askBackend();
                 // Reset height after sending
-                e.currentTarget.style.height = 'auto';
+                e.currentTarget.style.height = "auto";
               }
             }
           }}
           disabled={loading}
           className="flex-1 resize-none px-4 py-3 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-800 placeholder-gray-400 max-h-[200px] overflow-y-auto"
-          style={{ minHeight: '48px' }}
+          style={{ minHeight: "48px" }}
         />
         <button
           onClick={askBackend}
@@ -279,8 +323,19 @@ export default function ChatBox() {
           className="p-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
         >
           {loading ? (
-            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <svg
+              className="w-5 h-5 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
               <path
                 className="opacity-75"
                 fill="currentColor"
@@ -288,8 +343,18 @@ export default function ChatBox() {
               />
             </svg>
           ) : (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+              />
             </svg>
           )}
         </button>
