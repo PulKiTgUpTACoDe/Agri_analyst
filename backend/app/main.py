@@ -34,7 +34,7 @@ if cors_origins_raw:
     cors_origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()]
 else:
     # Default to production frontend if not specified
-    cors_origins = ["https://agri-analyst.netlify.app"]
+    cors_origins = ["https://agri-analyst.netlify.app", "https://agri-analyst-zc9g.vercel.app"]
 
 # Add localhost for development if DEBUG is True
 if getattr(settings, "DEBUG", False):

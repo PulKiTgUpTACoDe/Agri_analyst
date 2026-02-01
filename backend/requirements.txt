@@ -2,14 +2,15 @@
 fastapi
 uvicorn
 python-multipart
+starlette
 
 # Environment & Config
 python-dotenv
 pydantic
 pydantic-settings
 
-# LangChain Core (minimal)
-langchain-core
+# LangChain Core (let pip resolve compatible versions)
+langchain-core>=0.3.43
 langchain-google-genai
 langgraph
 
@@ -19,9 +20,6 @@ requests
 
 # Async
 anyio
-
-# CORS
-python-multipart
 
 # Data Processing (minimal)
 pandas
