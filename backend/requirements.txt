@@ -1,31 +1,31 @@
 ﻿# Core Web Framework
-fastapi==0.115.12
-uvicorn==0.38.0
-python-multipart==0.0.20
+fastapi
+uvicorn
+python-multipart
 
 # Environment & Config
-python-dotenv==1.0.1
-pydantic==2.11.2
-pydantic-settings==2.8.2
+python-dotenv
+pydantic
+pydantic-settings
 
 # LangChain Core (minimal)
-langchain-core==0.3.30
-langchain-google-genai==2.1.0
-langgraph==0.2.68
+langchain-core
+langchain-google-genai
+langgraph
 
 # API Client
-httpx==0.28.1
-requests==2.32.3
+httpx
+requests
 
 # Async
-anyio==4.8.0
+anyio
 
 # CORS
-python-multipart==0.0.20
+python-multipart
 
 # Data Processing (minimal)
-pandas==2.2.3
-numpy==1.26.4
+pandas
+numpy
 
 # That's it! Removed heavy dependencies:
 # - sentence-transformers (too large)
