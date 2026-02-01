@@ -20,9 +20,6 @@ async def lifespan(app: FastAPI):
     client = get_client()
     await client.close()
 
-
-app = FastAPI(title="Agri Analyst API", lifespan=lifespan)
-
 # CORS Configuration
 from app.core.config import get_settings
 
@@ -61,6 +58,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app = FastAPI(title="Agri Analyst API", lifespan=lifespan)
 
 
 class AskRequest(BaseModel):
