@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     temperature_endpoint: str = "https://api.data.gov.in/resource/08d46edd-f960-43b9-912b-271e22836976"
     rainfall_endpoint: str = "https://api.data.gov.in/resource/8e0bd482-4aba-4d99-9cb9-ff124f6f1c2f"
     
+    
+    # Pinecone Configuration (optional - for vector embeddings)
+    PINECONE_API_KEY: str = ""
+    PINECONE_ENVIRONMENT: str = "us-east-1-aws"
+    PINECONE_INDEX_NAME: str = "agri-analyst"
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

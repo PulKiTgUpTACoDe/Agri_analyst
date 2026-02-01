@@ -11,3 +11,4 @@ class AgentState(TypedDict):
     analysis: dict | None
     answer: str | None
     metadata: dict
+    context_docs: list[dict] | None  # Retrieved documents from vector store

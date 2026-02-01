@@ -25,6 +25,16 @@ from app.utils.policy_synthesis import (
     generate_comparative_summary
 )
 
+# Vector store import (lazy loaded)
+def get_vector_store_lazy():
+    """Lazy load vector store to avoid errors if not configured."""
+    try:
+        from app.db.vector_store import get_vector_store
+        return get_vector_store()
+    except Exception as e:
+        print(f"[VECTOR_STORE] Not available: {e}")
+        return None
+
 
  
 
@@ -352,6 +362,16 @@ async def analyze_data(state: AgentState) -> AgentState:
     return state
 
 
+async def retrieve_context(state: AgentState) -> AgentState:
+    """Retrieve relevant context from vector store based on question.
+    
+    DISABLED for Vercel deployment - vector operations require local models.
+    """
+    # Vector store disabled for Vercel deployment
+    state["context_docs"] = []
+    return state
+
+
 async def generate_answer(state: AgentState) -> AgentState:
     """Generate final answer using LLM with data and analysis."""
     intent = state.get("intent")
@@ -417,11 +437,23 @@ Be helpful, concise, and professional."""),
             
             chain = prompt | llm | StrOutputParser()
             state["answer"] = await chain.ainvoke({"question": state["question"]})
+            
+            # Store this Q&A too!
+            await store_qa_in_vectorstore(state)
+            
             return state
     
     # Build context
     context_parts = []
     
+    # Add vector store context (historical knowledge)
+    context_docs = state.get("context_docs", [])
+    if context_docs:
+        context_parts.append("## Historical Context & Similar Queries")
+        for i, doc in enumerate(context_docs, 1):
+            context_parts.append(f"{i}. {doc['content'][:200]}...")  # First 200 chars
+    
+    # Add current data
     for source, data in raw_data.items():
         if data:
             context_parts.append(f"## {source} ({len(data)} records)")
@@ -469,6 +501,59 @@ Focus on delivering insights, not on explaining where the data came from."""),
     ])
     
     chain = prompt | llm | StrOutputParser()
-    state["answer"] = await chain.ainvoke({"question": state["question"], "context": context})
+    answer = await chain.ainvoke({"question": state["question"], "context": context})
+    state["answer"] = answer
+    
+    # Store this Q&A pair in vector store for future retrievals
+    await store_qa_in_vectorstore(state)
     
     return state
+
+
+async def store_qa_in_vectorstore(state: AgentState):
+    """Store question-answer pair in vector store for future retrieval.
+    
+    This builds a knowledge base of answered questions over time.
+    Uses Pinecone's integrated embeddings (llama-text-embed-v2).
+    """
+    settings = get_settings()
+    
+    if not settings.PINECONE_API_KEY:
+        print("[VECTOR_STORE] Skipping storage - no API key configured")
+        return  # Skip if not configured
+    
+    try:
+        # Import vector store functions
+        from app.db.vector_store import add_texts
+        
+        question = state["question"]
+        answer = state["answer"]
+        intent = state.get("intent")
+        metadata = state.get("metadata", {})
+        
+        # Create a document combining question and answer
+        doc_text = f"Question: {question}\n\nAnswer: {answer}"
+        
+        # Prepare metadata (ensure all values are JSON-serializable)
+        doc_metadata = {
+            "question": str(question)[:500],  # Limit length
+            "query_type": str(intent.query_type if intent else "general"),
+            "sources_used": str(",".join(metadata.get("sources", []))),
+            "records_count": int(metadata.get("records_fetched", 0)),
+        }
+        
+        print(f"[VECTOR_STORE] Attempting to store Q&A pair...")
+        print(f"[VECTOR_STORE] Document length: {len(doc_text)} chars")
+        
+        # Add to vector store (Pinecone embeds automatically!)
+        add_texts(
+            texts=[doc_text],
+            metadatas=[doc_metadata]
+        )
+        
+        print(f"[VECTOR_STORE] ✓ Successfully stored Q&A pair")
+        
+    except Exception as e:
+        import traceback
+        print(f"[VECTOR_STORE] ✗ Storage failed: {e}")
+        print(f"[VECTOR_STORE] Traceback: {traceback.format_exc()}")

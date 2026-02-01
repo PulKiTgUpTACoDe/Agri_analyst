@@ -28,12 +28,21 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-cors_origins = getattr(settings, "CORS_ORIGINS", "").split(",")
-cors_origins = [origin.strip() for origin in cors_origins if origin.strip()]
+# Parse CORS origins from environment variable
+cors_origins_raw = getattr(settings, "CORS_ORIGINS", "")
+if cors_origins_raw:
+    cors_origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()]
+else:
+    # Default to production frontend if not specified
+    cors_origins = ["https://agri-analyst.netlify.app"]
+
+# Add localhost for development if DEBUG is True
+if getattr(settings, "DEBUG", False):
+    cors_origins.extend(["http://localhost:5173", "http://localhost:3000", "http://localhost:8000"])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://agri-analyst.netlify.app", "http://localhost:5173"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,7 +61,8 @@ async def ask(req: AskRequest):
         "raw_data": {},
         "analysis": None,
         "answer": None,
-        "metadata": {}
+        "metadata": {},
+        "context_docs": []  # Initialize for vector store results
     })
     
     # Build citations with friendly names
