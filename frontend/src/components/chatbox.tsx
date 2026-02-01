@@ -28,7 +28,7 @@ export default function ChatBox() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE = import.meta.env.VITE_API_BASE_LOCAL;
+  const API_BASE = import.meta.env.VITE_API_BASE;
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
