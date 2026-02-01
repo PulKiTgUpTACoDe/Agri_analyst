@@ -54,6 +54,9 @@ cors_origins.extend([
     "http://127.0.0.1:8000"
 ])
 
+for o in cors_origins:
+    origins.add(o.rstrip("/"))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
