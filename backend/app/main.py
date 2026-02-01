@@ -33,12 +33,26 @@ cors_origins_raw = getattr(settings, "CORS_ORIGINS", "")
 if cors_origins_raw:
     cors_origins = [origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()]
 else:
-    # Default to production frontend if not specified
-    cors_origins = ["https://agri-analyst.netlify.app", "https://agri-analyst-zc9g.vercel.app"]
+    cors_origins = []
 
-# Add localhost for development if DEBUG is True
-if getattr(settings, "DEBUG", False):
-    cors_origins.extend(["http://localhost:5173", "http://localhost:3000", "http://localhost:8000"])
+# Always include production frontends
+production_origins = [
+    "https://agri-analyst.netlify.app",
+    "https://agri-analyst-zc9g.vercel.app"
+]
+for origin in production_origins:
+    if origin not in cors_origins:
+        cors_origins.append(origin)
+
+# Always add localhost for development
+cors_origins.extend([
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000"
+])
 
 app.add_middleware(
     CORSMiddleware,
