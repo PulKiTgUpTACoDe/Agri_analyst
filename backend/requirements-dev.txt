@@ -1,0 +1,63 @@
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.12.0
+cachetools==6.2.2
+certifi==2025.11.12
+charset-normalizer==3.4.4
+click==8.3.1
+colorama==0.4.6
+fastapi==0.123.9
+filetype==1.2.0
+google-ai-generativelanguage==0.9.0
+google-api-core==2.28.1
+google-auth==2.43.0
+googleapis-common-protos==1.72.0
+grpcio==1.76.0
+grpcio-status==1.76.0
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.11
+jsonpatch==1.33
+jsonpointer==3.0.0
+langchain==1.1.2
+langchain-core==1.1.1
+langchain-google-genai==3.2.0
+langgraph==1.0.4
+langgraph-checkpoint==3.0.1
+langgraph-prebuilt==1.0.5
+langgraph-sdk==0.2.12
+langsmith==0.4.55
+numpy==2.3.5
+orjson==3.11.4
+ormsgpack==1.12.0
+packaging==25.0
+proto-plus==1.26.1
+protobuf==6.33.1
+pyasn1==0.6.1
+pyasn1_modules==0.4.2
+pydantic==2.12.5
+pydantic-settings==2.12.0
+pydantic_core==2.41.5
+python-dotenv==1.2.1
+python-multipart==0.0.20
+PyYAML==6.0.3
+requests==2.32.5
+requests-toolbelt==1.0.0
+rsa==4.9.1
+starlette==0.50.0
+tenacity==9.1.2
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+urllib3==2.6.0
+uuid_utils==0.12.0
+uvicorn==0.38.0
+xxhash==3.6.0
+zstandard==0.25.0
+
+# Additional dependencies for local development (not needed on Vercel)
+# Uncomment these if you want to use vector store locally:
+# pinecone-client
+# sentence-transformers
+# langchain-pinecone
+# langchain-community

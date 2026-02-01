@@ -1,0 +1,33 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+.env
+.DS_Store
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.git/
+.vscode/
+.idea/
+
+# Data files (not needed on Vercel)
+data/
+*.db
+*.sqlite
+chroma_db/
+
+# Model files (too large)
+models/
+*.pth
+*.pt
+*.bin
+*.onnx
