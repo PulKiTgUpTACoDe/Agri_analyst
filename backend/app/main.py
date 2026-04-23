@@ -54,9 +54,6 @@ cors_origins.extend([
     "http://127.0.0.1:8000"
 ])
 
-for o in cors_origins:
-    origins.add(o.rstrip("/"))
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
@@ -78,7 +75,7 @@ async def ask(req: AskRequest):
         "analysis": None,
         "answer": None,
         "metadata": {},
-        "context_docs": []  # Initialize for vector store results
+        "context_docs": [] 
     })
     
     # Build citations with friendly names
@@ -120,6 +117,10 @@ async def ask(req: AskRequest):
     
     return response
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+    
 
 if __name__ == "__main__":
     import uvicorn
