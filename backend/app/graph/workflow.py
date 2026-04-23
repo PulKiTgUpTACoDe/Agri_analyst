@@ -1,69 +1,92 @@
-"""LangGraph workflow definition."""
+"""LangGraph workflow definition.
+
+Flow:
+1. detect_intent → determine what user wants
+2. select_sources → pick which APIs to call (conditional: skip if general)
+3. fetch_data → parallel API calls (data.gov.in + Open-Meteo)
+4. validate_data → check data quality
+5. analyze_data → statistical analysis
+6. generate_answer → LLM synthesizes final response
+"""
 from langgraph.graph import StateGraph, END
 from app.graph.state import AgentState
-from app.graph.nodes import detect_intent, fetch_data, analyze_data, generate_answer, retrieve_context
+from app.graph.nodes import (
+    detect_intent, select_sources, fetch_data,
+    validate_data, analyze_data, generate_answer,
+)
 
 
-def should_fetch_data(state):
-    """Determine if we need to fetch data or can answer directly."""
+def should_fetch_data(state: AgentState) -> str:
+    """Route: does the query need external data or is it general?"""
     intent = state.get("intent")
     if not intent:
-        return "retrieve_and_answer"  # General questions: retrieve context then answer
-    
-    # Check if any data source params are set
+        return "answer_directly"
+
     needs_data = any([
         intent.daily_price_params,
         intent.variety_price_params,
         intent.production_params,
-        intent.temperature_params,
-        intent.rainfall_params
+        intent.weather_params,
     ])
-    
-    return "fetch_data" if needs_data else "retrieve_and_answer"
+
+    return "select_sources" if needs_data else "answer_directly"
+
+
+def is_data_sufficient(state: AgentState) -> str:
+    """Route: do we have enough data to analyze, or skip to answer?"""
+    raw_data = state.get("raw_data", {})
+    total = sum(len(v) for v in raw_data.values())
+
+    if total > 0:
+        return "analyze"
+    return "answer_directly"
 
 
 def create_workflow() -> StateGraph:
-    """Create the agricultural analysis workflow.
-    
-    Flow:
-    1. detect_intent -> Check if data fetching is needed
-    2a. If needs data: fetch_data -> retrieve_context -> analyze_data -> generate_answer
-    2b. If general: retrieve_context -> generate_answer
-    """
+    """Create the agricultural analysis workflow."""
     workflow = StateGraph(AgentState)
-    
-    # Add nodes
+
+    # Add all nodes
     workflow.add_node("detect_intent", detect_intent)
-    workflow.add_node("retrieve_context", retrieve_context)
+    workflow.add_node("select_sources", select_sources)
     workflow.add_node("fetch_data", fetch_data)
+    workflow.add_node("validate_data", validate_data)
     workflow.add_node("analyze_data", analyze_data)
     workflow.add_node("generate_answer", generate_answer)
-    workflow.add_node("retrieve_and_answer", retrieve_context)  # For general questions
-    
-    # Define edges
+
+    # Entry point
     workflow.set_entry_point("detect_intent")
-    
-    # Conditional routing based on whether data is needed
+
+    # Conditional: needs data or answer directly?
     workflow.add_conditional_edges(
         "detect_intent",
         should_fetch_data,
         {
-            "fetch_data": "fetch_data",
-            "retrieve_and_answer": "retrieve_and_answer"
+            "select_sources": "select_sources",
+            "answer_directly": "generate_answer",
         }
     )
-    
-    # Data-driven path: fetch -> retrieve context -> analyze -> answer
-    workflow.add_edge("fetch_data", "retrieve_context")
-    workflow.add_edge("retrieve_context", "analyze_data")
+
+    # Data pipeline: select → fetch → validate → conditional
+    workflow.add_edge("select_sources", "fetch_data")
+    workflow.add_edge("fetch_data", "validate_data")
+
+    # After validation: analyze if data exists, otherwise answer directly
+    workflow.add_conditional_edges(
+        "validate_data",
+        is_data_sufficient,
+        {
+            "analyze": "analyze_data",
+            "answer_directly": "generate_answer",
+        }
+    )
+
+    # Analysis → answer
     workflow.add_edge("analyze_data", "generate_answer")
-    
-    # General question path: retrieve context -> answer
-    workflow.add_edge("retrieve_and_answer", "generate_answer")
-    
-    # Final answer
+
+    # Final
     workflow.add_edge("generate_answer", END)
-    
+
     return workflow.compile()
 
 

@@ -18,19 +18,12 @@ class Settings(BaseSettings):
     GEMINI_TEMPERATURE: float = 0.3
     GEMINI_MAX_TOKENS: int = 8192
     
-    # API Endpoints
-    daily_prices_endpoint: str = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
-    variety_prices_endpoint: str = "https://api.data.gov.in/resource/35985678-0d79-46b4-9ed6-6f13308a1d24"
-    crop_production_endpoint: str = "https://api.data.gov.in/resource/35be999b-0208-4354-b557-f6ca9a5355de"
-    temperature_endpoint: str = "https://api.data.gov.in/resource/08d46edd-f960-43b9-912b-271e22836976"
-    rainfall_endpoint: str = "https://api.data.gov.in/resource/8e0bd482-4aba-4d99-9cb9-ff124f6f1c2f"
+    # Logging
+    LOG_LEVEL: str = "INFO"
     
-    
-    # Pinecone Configuration (optional - for vector embeddings)
-    PINECONE_API_KEY: str = ""
-    PINECONE_ENVIRONMENT: str = "us-east-1-aws"
-    PINECONE_INDEX_NAME: str = "agri-analyst"
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    # Cache settings
+    CACHE_MAX_SIZE: int = 500
+    CACHE_DEFAULT_TTL: int = 3600  # 1 hour
     
     model_config = SettingsConfigDict(
         env_file=".env",

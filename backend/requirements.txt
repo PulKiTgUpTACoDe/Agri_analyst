@@ -1,8 +1,7 @@
-﻿# Core Web Framework
+# Core Web Framework
 fastapi
 uvicorn
 python-multipart
-starlette
 
 # Environment & Config
 python-dotenv
@@ -16,18 +15,11 @@ langgraph
 
 # API Client
 httpx
-requests
 
-# Async
-anyio
-
-# Data Processing (minimal)
+# Data Processing
 pandas
 numpy
 
-# That's it! Removed heavy dependencies:
-# - sentence-transformers (too large)
-# - chromadb (not needed)
-# - pinecone (disabled)
-# - langchain-community (too large)
-# - torch/transformers (too large)
+# Resilience & Caching
+tenacity>=8.0
+cachetools>=5.0
